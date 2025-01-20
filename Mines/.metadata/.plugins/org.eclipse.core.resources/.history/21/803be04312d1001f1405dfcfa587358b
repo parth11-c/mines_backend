@@ -1,0 +1,8 @@
+spring.application.name=Jwt
+server.port = 8081
+
+# MongoDB Configuration
+spring.data.mongodb.uri=mongodb://mongo:XSXGMUWZumRwDKYZpfvmykRZPIoHRwIv@mongodb.railway.internal:27017/MineDatabase?authSource=admin
+
+
+spring.data.mongodb.database=MineDatabase

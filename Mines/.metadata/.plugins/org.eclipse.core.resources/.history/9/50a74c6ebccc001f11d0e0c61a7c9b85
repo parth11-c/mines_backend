@@ -1,0 +1,190 @@
+package com.data.service;
+
+import com.data.entiy.Cell;
+import com.data.entiy.Mine;
+import com.data.repository.Mrepo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+
+@Service
+public class MService {
+
+    private static final Logger log = LoggerFactory.getLogger(MService.class);
+
+    @Autowired
+    private Mrepo gameRepository;
+
+    /**
+     * Creates a new game with a grid of 25 cells and places 3 diamonds randomly.
+     * @return the created game
+     */
+    public Mine createGame() {
+        try {
+            List<Cell> grid = new ArrayList<>();
+            for (int i = 0; i < 25; i++) {
+                grid.add(new Cell());
+            }
+
+            // Place diamonds at random positions
+            placeDiamonds(grid, 3);
+
+            Mine game = new Mine();
+            game.setGrid(grid);
+            game.setDiamondsFound(0); // Initially no diamonds found
+            game.setPoints(0); // Initially no points
+            game.setGameOver(false); // Game is not over at the start
+            log.info("New game created with 3 diamonds hidden.");
+            return gameRepository.save(game);
+        } catch (Exception e) {
+            log.error("Error creating the game: {}", e.getMessage());
+            throw new RuntimeException("Error creating the game, please try again later.");
+        }
+    }
+
+    /**
+     * Places a specified number of diamonds at random positions in the grid.
+     * @param grid the list of cells
+     * @param diamondCount the number of diamonds to place
+     */
+    private void placeDiamonds(List<Cell> grid, int diamondCount) {
+        try {
+            Random random = new Random();
+            List<Integer> positions = new ArrayList<>();
+            for (int i = 0; i < grid.size(); i++) {
+                positions.add(i);
+            }
+
+            Collections.shuffle(positions);  // Shuffle to randomize positions
+
+            for (int i = 0; i < diamondCount; i++) {
+                grid.get(positions.get(i)).setHasDiamond(true);
+            }
+            log.info("Diamonds placed at random positions.");
+        } catch (Exception e) {
+            log.error("Error placing diamonds: {}", e.getMessage());
+            throw new RuntimeException("Error placing diamonds, please try again later.");
+        }
+    }
+
+    /**
+     * Reveals a cell in the game.
+     * @param gameId the game ID
+     * @param row the row index
+     * @param col the column index
+     * @return the updated game
+     */
+    public Mine revealCell(String gameId, int row, int col) {
+        try {
+            log.info("Revealing cell at row: {}, col: {} for gameId: {}", row, col, gameId);
+
+            // Retrieve game by ID
+            Mine game = gameRepository.findById(gameId).orElse(null);
+            if (game == null) {
+                log.error("Game with ID {} not found", gameId);
+                throw new RuntimeException("Game not found with the provided ID.");
+            }
+
+            int cellIndex = row * 5 + col;  // Assuming grid size is 5x5
+            if (cellIndex < 0 || cellIndex >= game.getGrid().size()) {
+                log.error("Invalid cell position at row: {}, col: {}", row, col);
+                throw new IllegalArgumentException("Invalid cell position.");
+            }
+
+            // Get the cell and check if it is already revealed
+            Cell cell = game.getGrid().get(cellIndex);
+            if (cell.isRevealed()) {
+                log.error("Cell already revealed at row: {}, col: {}", row, col);
+                throw new RuntimeException("Cell already revealed.");
+            }
+
+            // Reveal the cell
+            cell.setRevealed(true);
+
+            // If a diamond is found, update the game state
+            if (cell.isHasDiamond()) {
+                game.setDiamondsFound(game.getDiamondsFound() + 1);
+                game.setPoints(game.getPoints() + 10);  // Add points for finding a diamond
+                log.info("Diamond found! Points updated to: {}", game.getPoints());
+            }
+
+            // If all diamonds are found, mark the game as over
+            if (game.getDiamondsFound() == 3) {
+                game.setGameOver(true);
+                log.info("Game over! All diamonds found.");
+            }
+
+            // Save the updated game and return it
+            return gameRepository.save(game);
+        } catch (IllegalArgumentException e) {
+            log.error("Error revealing cell: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Error revealing cell: {}", e.getMessage());
+            throw new RuntimeException("Error revealing the cell, please try again later.");
+        }
+    }
+
+    /**
+     * Retrieves the grid of cells for a specific game.
+     * @param gameId the game ID
+     * @return the grid of cells
+     */
+    public List<Cell> getGrid(String gameId) {
+        try {
+            log.info("Fetching grid for gameId: {}", gameId);
+
+            // Retrieve game by ID
+            Mine game = gameRepository.findById(gameId).orElse(null);
+            if (game == null) {
+                log.error("Game with ID {} not found", gameId);
+                throw new RuntimeException("Game not found with the provided ID.");
+            }
+
+            return game.getGrid();
+        } catch (Exception e) {
+            log.error("Error fetching grid: {}", e.getMessage());
+            throw new RuntimeException("Error fetching the game grid, please try again later.");
+        }
+    }
+
+    /**
+     * Retrieves the positions of the diamonds in the game grid.
+     * @param gameId the game ID
+     * @return a list of indices where diamonds are located
+     */
+    public List<Integer> getDiamondLocations(String gameId) {
+        try {
+            log.info("Fetching diamond locations for gameId: {}", gameId);
+
+            // Retrieve game by ID
+            Mine game = gameRepository.findById(gameId).orElse(null);
+            if (game == null) {
+                log.error("Game with ID {} not found", gameId);
+                throw new RuntimeException("Game not found with the provided ID.");
+            }
+
+            List<Integer> diamondIndices = new ArrayList<>();
+            List<Cell> grid = game.getGrid();
+
+            // Loop through grid and collect indices of cells with diamonds
+            for (int i = 0; i < grid.size(); i++) {
+                if (grid.get(i).isHasDiamond()) {
+                    diamondIndices.add(i);
+                }
+            }
+
+            return diamondIndices;
+        } catch (Exception e) {
+            log.error("Error fetching diamond locations: {}", e.getMessage());
+            throw new RuntimeException("Error fetching diamond locations, please try again later.");
+        }
+    }
+}

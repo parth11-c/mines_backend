@@ -1,0 +1,114 @@
+package com.data.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.data.entiy.Cell;
+import com.data.entiy.Mine;
+ import com.data.repository.Mrepo;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+
+@Service
+public class MService {
+
+    private static final Logger log = LoggerFactory.getLogger(MService.class);
+
+    @Autowired
+    private Mrepo gameRepository;
+
+    public Mine createGame() {
+        List<Cell> grid = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            grid.add(new Cell());
+        }
+
+        placeDiamonds(grid, 3);
+
+        Mine game = new Mine();
+        game.setGrid(grid);
+        log.info("New game created with 3 diamonds hidden.");
+        return gameRepository.save(game);
+    }
+
+    private void placeDiamonds(List<Cell> grid, int diamondCount) {
+        Random random = new Random();
+        List<Integer> positions = new ArrayList<>();
+        for (int i = 0; i < grid.size(); i++) {
+            positions.add(i);
+        }
+
+        Collections.shuffle(positions);
+
+        for (int i = 0; i < diamondCount; i++) {
+            grid.get(positions.get(i)).setHasDiamond(true);
+        }
+        log.info("Diamonds placed at random positions.");
+    }
+
+    public Mine revealCell(String gameId, int row, int col) {
+        log.info("Revealing cell at row: {}, col: {} for gameId: {}", row, col, gameId);
+
+        Mine game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new com.data.entiy.GameNotFoundException("Game with ID " + gameId + " not found"));
+
+        int cellIndex = row * 5 + col;
+        if (cellIndex < 0 || cellIndex >= game.getGrid().size()) {
+            throw new IllegalArgumentException("Invalid cell position");
+        }
+
+        Cell cell = game.getGrid().get(cellIndex);
+
+        if (cell.isRevealed()) {
+            throw new RuntimeException("Cell already revealed");
+        }
+
+        cell.setRevealed(true);
+
+        if (cell.isHasDiamond()) {
+            game.setDiamondsFound(game.getDiamondsFound() + 1);
+            game.setPoints(game.getPoints() + 10); // Add points for finding a diamond
+            log.info("Diamond found! Points updated to: {}", game.getPoints());
+        }
+
+        if (game.getDiamondsFound() == 3) {
+            game.setGameOver(true);
+            log.info("Game over! All diamonds found.");
+        }
+
+        return gameRepository.save(game);
+    }
+
+    public List<Cell> getGrid(String gameId) {
+        log.info("Fetching grid for gameId: {}", gameId);
+
+        Mine game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new com.data.entiy.GameNotFoundException("Game with ID " + gameId + " not found"));
+
+        return game.getGrid();
+    }
+    
+    public List<Integer> getDiamondLocations(String gameId) {
+        Mine game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new RuntimeException("Game not found"));
+
+        List<Integer> diamondIndices = new ArrayList<>();
+        List<Cell> grid = game.getGrid();
+
+        for (int i = 0; i < grid.size(); i++) {
+            if (grid.get(i).isHasDiamond()) {
+                diamondIndices.add(i);
+            }
+        }
+
+        return diamondIndices;
+    }
+
+    
+}

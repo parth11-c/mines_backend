@@ -1,0 +1,11 @@
+spring.application.name=Jwt
+server.port = 8081
+
+# MongoDB Configuration
+spring.data.mongodb.uri=mongodb://localhost:27017
+spring.data.mongodb.database=MineDatabase
+
+ 
+ <MONGO_INITDB_ROOT_USERNAME>: mongo
+ <MONGO_INITDB_ROOT_PASSWORD>: XSXGMUWZumRwDKYZpfvmykRZPloHRwIv
+<MONGOHOST>:mongodb://mongo:XSXGMUWZumRwDKYZpfvmykRZPloHRwIv@junction.proxy.rlwy.net:14757

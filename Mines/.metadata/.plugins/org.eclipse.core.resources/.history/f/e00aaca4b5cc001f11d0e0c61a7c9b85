@@ -1,0 +1,79 @@
+package com.data.service;
+ 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.data.entiy.Cell;
+import com.data.entiy.Mine;
+import com.data.repository.Mrepo;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+@Service
+public class MService {
+
+    @Autowired
+    private Mrepo gameRepository;
+
+    public Mine createGame() {
+        List<Cell> grid = new ArrayList<>();
+        for (int i = 0; i < 25; i++) {
+            grid.add(new Cell());
+        }
+
+        placeDiamonds(grid, 3);
+
+        Mine game = new Mine();
+        game.getGrid();
+        return gameRepository.save(game);
+    }
+
+    private void placeDiamonds(List<Cell> grid, int diamondCount) {
+        Random random = new Random();
+        List<Integer> positions = new ArrayList<>();
+        for (int i = 0; i < grid.size(); i++) {
+            positions.add(i);
+        }
+
+        Collections.shuffle(positions);
+
+        for (int i = 0; i < diamondCount; i++) {
+            grid.get(positions.get(i)).setHasDiamond(true);
+        }
+    }
+
+    public Mine revealCell(String gameId, int row, int col) {
+        Mine game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new RuntimeException("Game not found"));
+
+        int cellIndex = row * 5 + col;
+        Cell cell = game.getGrid().get(cellIndex);
+
+        if (cell.isRevealed()) {
+            throw new RuntimeException("Cell already revealed");
+        }
+
+        cell.setRevealed(true);
+
+        if (cell.isHasDiamond()) {
+            game.setDiamondsFound(game.getDiamondsFound() + 1);
+            game.setPoints(game.getPoints() + 10); // Add points for finding diamonds
+        }
+
+        if (game.getDiamondsFound() == 3) {
+            game.setGameOver(true);
+        }
+
+        return gameRepository.save(game);
+    }
+
+    public List<Cell> getGrid(String gameId) {
+        Mine game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new RuntimeException("Game not found"));
+
+        return game.getGrid();
+    }
+}

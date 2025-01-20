@@ -1,0 +1,96 @@
+package com.data.controller;
+
+import com.data.entity.Room;
+import com.data.service.RoomService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:8081", allowedHeaders = "Authorization, Content-Type", allowCredentials = "true")
+public class RoomController {
+
+    @Autowired
+    private RoomService roomService;
+
+
+    
+    
+    
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @PostMapping("/admin/create-room")
+    @CrossOrigin(origins = "http://localhost:8081", allowedHeaders = "Authorization, Content-Type", allowCredentials = "true")
+    public ResponseEntity<?> createRoom(@RequestParam int timeoutMinutes) {
+        try {
+            Room room = roomService.createRoom(timeoutMinutes);
+            return ResponseEntity.status(HttpStatus.CREATED).body(room);
+        } catch (RuntimeException ex) {
+            return buildErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+ 
+//    
+//     @PostMapping("/join-room")
+//    @CrossOrigin(origins = "http://localhost:8081", allowedHeaders = "Authorization, Content-Type", allowCredentials = "true")
+//    public ResponseEntity<?> joinRoom(@RequestParam String code) {
+//        try {
+//            Room room = roomService.joinRoom(code);
+//            return ResponseEntity.ok(room);
+//        } catch (RuntimeException ex) {
+//            return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+//        }
+//    }
+//
+//
+//
+//     
+    @PostMapping("/join-room")
+    @CrossOrigin(
+    	    origins = "http://localhost:8081",
+    	    allowedHeaders = "Authorization, Content-Type",
+    	    allowCredentials = "true",
+    	    methods = {RequestMethod.POST, RequestMethod.OPTIONS}, // Allow POST and OPTIONS
+    	    exposedHeaders = "Authorization" // Expose the Authorization header
+    	)
+    public ResponseEntity<?> joinRoom(
+        @RequestParam String code,
+        @RequestHeader("Authorization") String authHeader // Add this parameter
+    ) {
+        System.out.println("Received Authorization header: " + authHeader); // Debug log
+        try {
+            String token = authHeader.replace("Bearer ", ""); // Extract token
+            // Validate token here (e.g., using JWTUtils or a service)
+            Room room = roomService.joinRoom(code);
+            return ResponseEntity.ok(room);
+        } catch (RuntimeException ex) {
+            return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+    
+    
+    @GetMapping("/{roomCode}/game-cashouts")
+    public ResponseEntity<?> getGameCashouts(@PathVariable String roomCode) {
+        try {
+            Map<String, Double> cashouts = roomService.getGameCashouts(roomCode);
+            return ResponseEntity.ok(cashouts);
+        } catch (RuntimeException ex) {
+            return buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+
+    
+    private ResponseEntity<?> buildErrorResponse(String errorMessage, HttpStatus status) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", errorMessage);
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+}

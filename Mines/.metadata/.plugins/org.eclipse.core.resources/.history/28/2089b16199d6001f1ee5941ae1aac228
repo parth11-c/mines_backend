@@ -1,0 +1,69 @@
+package com.data.controller;
+
+import com.data.entity.Room;
+import com.data.service.RoomService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:8081", allowedHeaders = "*", allowCredentials = "true")public class RoomController {
+
+    @Autowired
+    private RoomService roomService;
+
+    /**
+     * Create a room with a specific timeout in minutes.
+     * Accessible only to users with 'ADMIN' or 'OWNER' roles.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER')")
+    @PostMapping("/admin/create-room")
+    public ResponseEntity<?> createRoom(@RequestParam int timeoutMinutes) {
+        try {
+            Room room = roomService.createRoom(timeoutMinutes);
+            return ResponseEntity.status(HttpStatus.CREATED).body(room);
+        } catch (RuntimeException ex) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Join an existing room using a room code and a user name.
+     */
+    @CrossOrigin
+    @PostMapping("/join-room")
+    public ResponseEntity<?> joinRoom(@RequestParam String code ) {
+        try {
+            Room room = roomService.joinRoom(code);
+            return ResponseEntity.ok(room);
+        } catch (RuntimeException ex) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+    }
+
+    /**
+     * Retrieve game cashouts for a specific room by room code.
+     */
+    @GetMapping("/{roomCode}/game-cashouts")
+    public ResponseEntity<?> getGameCashouts(@PathVariable String roomCode) {
+        try {
+            Map<String, Double> cashouts = roomService.getGameCashouts(roomCode);
+            return ResponseEntity.ok(cashouts);
+        } catch (RuntimeException ex) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+    }
+}

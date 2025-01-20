@@ -1,0 +1,22 @@
+package com.data.entity;
+
+import java.util.Arrays;
+
+public class MultiplierUtil {
+
+    private static final double[][] MULTIPLIERS = {
+        {1.01, 1.08, 1.12, 1.18, 1.24, 1.31, 1.37, 1.46, 1.55, 1.65, 1.77, 1.9, 2.06, 2.25, 2.47, 2.75, 3.09, 3.54, 4.12, 4.95, 6.19, 8.25, 12.37, 24.75},
+        {1.08, 1.17, 1.29, 1.41, 1.56, 1.74, 1.93, 2.18, 2.47, 2.83, 3.26, 3.81, 4.5, 5.46, 6.68, 8.25, 10.14, 14.14, 19.8, 29.7, 49.5, 99.0, 297.0},
+        // Add all rows from the Kotlin algorithm here...
+        {24.75} // Final row for 24 mines
+    };
+
+    public static double getMultiplier(int mines, int diamonds) {
+        if (diamonds <= 24 && mines <= 24) {
+            return MULTIPLIERS[diamonds - 1][mines - 1];
+        } else {
+            return -1.0; // Invalid input
+        }
+    }
+}
+
