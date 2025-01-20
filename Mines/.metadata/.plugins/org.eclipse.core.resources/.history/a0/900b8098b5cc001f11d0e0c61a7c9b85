@@ -1,5 +1,0 @@
-package com.data.entiy;
-
-public class GameNotFoundException {
-
-}
